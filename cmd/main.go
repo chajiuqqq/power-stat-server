@@ -3,15 +3,19 @@ package main
 import (
 	"encoding/json"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/robfig/cron/v3"
 	"log"
 	"mqtt-wx-forward/service"
 	"mqtt-wx-forward/types"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
 func main() {
 	opt := &service.ServiceOption{
-		MqttBroker: "tcp://192.168.1.18:1883",
+		MqttBroker: "tcp://100.127.185.26:1883",
 		ClientID:   "mqtt-client",
 	}
 	sv := service.New(opt)
@@ -49,6 +53,16 @@ func main() {
 			log.Println("fail to save energy log:", err, "raw:", msg.Payload())
 			return
 		}
+
+		energy := sv.GetTopEnergyMsg()
+		if energy != nil {
+			err := sv.PushMsg(types.PushUrl, *energy)
+			if err != nil {
+				log.Println("fail to push energy msg:", err)
+			} else {
+				log.Println("push energy msg success")
+			}
+		}
 	}
 
 	// 订阅消息
@@ -61,30 +75,23 @@ func main() {
 	}
 	log.Println("Subscribe success")
 
-	// 持续运行
-	ticker := time.NewTicker(time.Minute)
-	for {
-		select {
-		case <-ticker.C:
-			tele := sv.GetTopTeleMsg()
-			if tele != nil {
-				err := sv.PushMsg(types.PushUrl, *tele)
-				if err != nil {
-					log.Println("fail to push tele msg:", err)
-				}
+	c := cron.New()
+	c.AddFunc("0 0 9 * * *", func() {
+		tele := sv.GetTopTeleMsg()
+		if tele != nil {
+			err := sv.PushMsg(types.PushUrl, *tele)
+			if err != nil {
+				log.Println("fail to push tele msg:", err)
+			} else {
+				log.Println("push tele msg success")
 			}
-			energy := sv.GetTopEnergyMsg()
-			if energy != nil {
-				err := sv.PushMsg(types.PushUrl, *energy)
-				if err != nil {
-					log.Println("fail to push energy msg:", err)
-				}
-			}
-			log.Println("push msg success")
-		case <-time.Tick(1 * time.Second):
-			log.Println(time.Now().Format(time.DateTime), " running...")
-		default:
-
 		}
-	}
+	})
+	c.Start()
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+	<-done
+	c.Stop()
+	log.Println("server scheduler stopped")
 }

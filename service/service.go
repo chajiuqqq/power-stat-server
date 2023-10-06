@@ -96,7 +96,7 @@ func (s *Service) GetTopTeleMsg() *types.PushMsgData {
 	}
 	return &types.PushMsgData{
 		Title:       fmt.Sprintf("%s 电量统计", t.Format(time.DateOnly)),
-		Description: fmt.Sprintf("%s 总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", t.Format(time.DateOnly), d.Energy.Total, d.Energy.Today, d.Energy.Yesterday),
+		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.Energy.Total, d.Energy.Today, d.Energy.Yesterday),
 		Content:     "",
 		Channel:     "",
 		Token:       "",
@@ -112,7 +112,7 @@ func (s *Service) GetTopEnergyMsg() *types.PushMsgData {
 	d := s.energyLogs[lens-1]
 	return &types.PushMsgData{
 		Title:       fmt.Sprintf("%s 测试电量统计", d.Time.Format(time.DateOnly)),
-		Description: fmt.Sprintf("%s 总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.Time.Format(time.DateOnly), d.E.Total, d.E.Today, d.E.Yesterday),
+		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.E.Total, d.E.Today, d.E.Yesterday),
 		Content:     "",
 		Channel:     "",
 		Token:       "",
