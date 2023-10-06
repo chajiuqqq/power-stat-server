@@ -24,4 +24,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: chajiuqqq/chajiuqqq:latest
+          tags: chajiuqqq/power-monitor-server:latest
