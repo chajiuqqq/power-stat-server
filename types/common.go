@@ -1,5 +1,13 @@
 package types
 
+import "time"
+
+const (
+	TeleSensorTopic = "tele/generic/SENSOR"
+	ResultTopic     = "stat/generic/RESULT"
+	PushUrl         = "http://www.chajiuqqq.cn:3000/push/chajiuqqq"
+)
+
 // 定义消息结构体
 type SensorEnergy struct {
 	TotalStartTime string
@@ -22,7 +30,8 @@ type EnergyToday struct {
 }
 
 type EnergyTodayData struct {
-	E EnergyToday `json:"EnergyToday"`
+	E    EnergyToday `json:"EnergyToday"`
+	Time time.Time
 }
 
 type PushMsgData struct {
