@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/robfig/cron/v3"
 	"log"
@@ -14,11 +15,14 @@ import (
 )
 
 func main() {
+	config := types.NewConfig()
 	opt := &service.ServiceOption{
-		MqttBroker: "tcp://100.127.185.26:1883",
+		MqttBroker: fmt.Sprintf("tcp://%s:%s", config.BrokerIp, config.Port),
 		ClientID:   "mqtt-client",
+		Config:     config,
 	}
 	sv := service.New(opt)
+	log.Println("Connect to broker successfully:", opt.MqttBroker)
 
 	// 定义消息处理函数
 	teleSensorHandler := func(client mqtt.Client, msg mqtt.Message) {

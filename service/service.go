@@ -17,13 +17,18 @@ type Service struct {
 	teleSensorLogs []types.SensorData
 	energyLogs     []types.EnergyTodayData
 	logLensLimit   int
+	Config         *types.Config
 }
 type ServiceOption struct {
 	MqttBroker string
 	ClientID   string
+	Config     *types.Config
 }
 
 func New(opt *ServiceOption) *Service {
+	if opt.Config == nil {
+		opt.Config = types.NewConfig()
+	}
 	// MQTT连接参数
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(opt.MqttBroker)
@@ -46,6 +51,7 @@ func New(opt *ServiceOption) *Service {
 		teleSensorLogs: make([]types.SensorData, 0),
 		energyLogs:     make([]types.EnergyTodayData, 0),
 		logLensLimit:   1000,
+		Config:         opt.Config,
 	}
 }
 
@@ -94,15 +100,19 @@ func (s *Service) GetTopTeleMsg() *types.PushMsgData {
 		log.Println("fail to parse tele time:", d.Time)
 		t = time.Now()
 	}
-	return &types.PushMsgData{
+	res := &types.PushMsgData{
 		Title:       fmt.Sprintf("%s 电量统计", t.Format(time.DateOnly)),
 		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.Energy.Total, d.Energy.Today, d.Energy.Yesterday),
 		Content:     "",
 		Channel:     "",
 		Token:       "",
-		//To:          "@all",
-		To: "CaiJiaChen",
 	}
+	if s.Config.Profile == "" || s.Config.Profile == types.ProfileDev {
+		res.To = "CaiJiaChen"
+	} else {
+		res.To = "@all"
+	}
+	return res
 }
 func (s *Service) GetTopEnergyMsg() *types.PushMsgData {
 	lens := len(s.energyLogs)
@@ -110,15 +120,20 @@ func (s *Service) GetTopEnergyMsg() *types.PushMsgData {
 		return nil
 	}
 	d := s.energyLogs[lens-1]
-	return &types.PushMsgData{
+	res := &types.PushMsgData{
 		Title:       fmt.Sprintf("%s 测试电量统计", d.Time.Format(time.DateOnly)),
 		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.E.Total, d.E.Today, d.E.Yesterday),
 		Content:     "",
 		Channel:     "",
 		Token:       "",
-		//To:          "@all",
-		To: "CaiJiaChen",
 	}
+
+	if s.Config.Profile == "" || s.Config.Profile == types.ProfileDev {
+		res.To = "CaiJiaChen"
+	} else {
+		res.To = "@all"
+	}
+	return res
 }
 func (s *Service) clearLogs() {
 	if len(s.teleSensorLogs) > s.logLensLimit {
