@@ -1,5 +1,5 @@
 # 使用golang作为基础镜像
-FROM golang:1.16
+FROM golang:1.21
 
 # 将源代码复制到容器中
 COPY . /app/
