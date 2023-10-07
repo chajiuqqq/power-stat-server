@@ -7,6 +7,7 @@ const (
 	ResultTopic     = "stat/generic/RESULT"
 	PushUrl         = "http://www.chajiuqqq.cn:3000/push/chajiuqqq"
 	ProfileDev      = "dev"
+	ProfileTest     = "test"
 )
 
 // 定义消息结构体

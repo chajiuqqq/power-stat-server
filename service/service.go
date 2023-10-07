@@ -39,10 +39,14 @@ func New(conf *types.Config, logger *log.Logger, opt *ServiceOption) *Service {
 
 	// 连接到MQTT代理
 	mqttc := mqtt.NewClient(opts)
-	if token := mqttc.Connect(); token.Wait() && token.Error() != nil {
-		logger.Fatal(token.Error())
+	if conf.Profile != types.ProfileTest {
+		if token := mqttc.Connect(); token.Wait() && token.Error() != nil {
+			logger.Fatal(token.Error())
+		}
+		logger.Println("Connect to broker successfully:", opt.MqttBroker)
+	} else {
+		logger.Println("Testing env,skip connect to mqtt broker")
 	}
-	logger.Println("Connect to broker successfully:", opt.MqttBroker)
 
 	// http
 	httpc := &http.Client{}
