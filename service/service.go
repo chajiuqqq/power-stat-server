@@ -18,47 +18,54 @@ type Service struct {
 	energyLogs     []types.EnergyTodayData
 	logLensLimit   int
 	Config         *types.Config
+	Logger         *log.Logger
 }
 type ServiceOption struct {
 	MqttBroker string
 	ClientID   string
-	Config     *types.Config
 }
 
-func New(opt *ServiceOption) *Service {
-	if opt.Config == nil {
-		opt.Config = types.NewConfig()
+func New(conf *types.Config, logger *log.Logger, opt *ServiceOption) *Service {
+	if conf == nil {
+		conf = types.NewConfig()
 	}
 	// MQTT连接参数
+	if opt.ClientID == "" {
+		opt.ClientID = "mqtt-client-" + time.Now().Format("20060102150405")
+	}
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(opt.MqttBroker)
 	opts.SetClientID(opt.ClientID)
-	if opt.ClientID == "" {
-		opts.SetClientID("mqtt-client")
-	}
 
 	// 连接到MQTT代理
 	mqttc := mqtt.NewClient(opts)
 	if token := mqttc.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		logger.Fatal(token.Error())
 	}
+	logger.Println("Connect to broker successfully:", opt.MqttBroker)
 
 	// http
 	httpc := &http.Client{}
+
+	logLens := 1000
+	if conf.Profile == "" || conf.Profile == "dev" {
+		logLens = 100
+	}
 	return &Service{
 		Mqtt:           mqttc,
 		Http:           httpc,
 		teleSensorLogs: make([]types.SensorData, 0),
 		energyLogs:     make([]types.EnergyTodayData, 0),
-		logLensLimit:   1000,
-		Config:         opt.Config,
+		logLensLimit:   logLens,
+		Config:         conf,
+		Logger:         logger,
 	}
 }
 
 func (s *Service) PushMsg(url string, d types.PushMsgData) error {
 	payloadBytes, _ := json.Marshal(d)
 	payload := strings.NewReader(string(payloadBytes))
-	log.Println("post data:", string(payloadBytes))
+	s.Logger.Println("push data:", string(payloadBytes))
 
 	req, err := http.NewRequest("POST", url, payload)
 	if err != nil {
@@ -97,7 +104,7 @@ func (s *Service) GetTopTeleMsg() *types.PushMsgData {
 	d := s.teleSensorLogs[lens-1]
 	t, err := time.Parse(d.Time, "2006-01-02T15:04:05")
 	if err != nil {
-		log.Println("fail to parse tele time:", d.Time)
+		s.Logger.Println("fail to parse tele time:", d.Time)
 		t = time.Now()
 	}
 	res := &types.PushMsgData{
@@ -136,10 +143,10 @@ func (s *Service) GetTopEnergyMsg() *types.PushMsgData {
 	return res
 }
 func (s *Service) clearLogs() {
-	if len(s.teleSensorLogs) > s.logLensLimit {
+	if len(s.teleSensorLogs) >= s.logLensLimit {
 		s.teleSensorLogs = make([]types.SensorData, 0)
 	}
-	if len(s.energyLogs) > s.logLensLimit {
+	if len(s.energyLogs) >= s.logLensLimit {
 		s.energyLogs = make([]types.EnergyTodayData, 0)
 	}
 }
