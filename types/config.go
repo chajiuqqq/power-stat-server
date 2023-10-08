@@ -3,6 +3,7 @@ package types
 import (
 	"log"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -33,4 +34,17 @@ func NewConfig() *Config {
 		log.Fatal("Please set CRON")
 	}
 	return res
+}
+func (c *Config) IsDev() bool {
+	return c.Profile == ProfileDev
+}
+func (c *Config) IsTest() bool {
+	return c.Profile == ProfileTest
+}
+func (c *Config) DevGroup() string {
+	devg := []string{"CaiJiaChen"}
+	return strings.Join(devg, ",")
+}
+func (c *Config) ProdGroup() string {
+	return "@all"
 }

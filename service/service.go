@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"log"
+	"mqtt-wx-forward/model/report"
 	"mqtt-wx-forward/types"
 	"net/http"
 	"strings"
@@ -12,13 +15,11 @@ import (
 )
 
 type Service struct {
-	Mqtt           mqtt.Client
-	Http           *http.Client
-	teleSensorLogs []types.SensorData
-	energyLogs     []types.EnergyTodayData
-	logLensLimit   int
-	Config         *types.Config
-	Logger         *log.Logger
+	Mqtt        mqtt.Client
+	Http        *http.Client
+	Config      *types.Config
+	Logger      *log.Logger
+	ReportModel report.ReportModel
 }
 type ServiceOption struct {
 	MqttBroker string
@@ -51,18 +52,14 @@ func New(conf *types.Config, logger *log.Logger, opt *ServiceOption) *Service {
 	// http
 	httpc := &http.Client{}
 
-	logLens := 1000
-	if conf.Profile == "" || conf.Profile == "dev" {
-		logLens = 100
-	}
+	// mysql dsn
+	conn := sqlx.NewMysql("root:@tcp(127.0.0.1:3306)/power_monitor_dev?charset=utf8mb4&parseTime=True&loc=Local")
 	return &Service{
-		Mqtt:           mqttc,
-		Http:           httpc,
-		teleSensorLogs: make([]types.SensorData, 0),
-		energyLogs:     make([]types.EnergyTodayData, 0),
-		logLensLimit:   logLens,
-		Config:         conf,
-		Logger:         logger,
+		Mqtt:        mqttc,
+		Http:        httpc,
+		Config:      conf,
+		Logger:      logger,
+		ReportModel: report.NewReportModel(conn),
 	}
 }
 
@@ -90,67 +87,74 @@ func (s *Service) PushMsg(url string, d types.PushMsgData) error {
 	return nil
 }
 
-func (s *Service) SaveTeleLog(t types.SensorData) error {
-	s.clearLogs()
-	s.teleSensorLogs = append(s.teleSensorLogs, t)
-	return nil
+func (s *Service) SaveTeleLog(ctx context.Context, t types.SensorData) error {
+	myTime, err := time.Parse("2006-01-02T15:04:05", t.Time)
+	if err != nil {
+		return err
+	}
+	startTime, err := time.Parse("2006-01-02T15:04:05", t.Energy.TotalStartTime)
+	if err != nil {
+		return err
+	}
+	_, err = s.ReportModel.Insert(ctx, &report.Report{
+		Time:           myTime,
+		TotalStartTime: startTime,
+		Total:          t.Energy.Total,
+		Yesterday:      t.Energy.Yesterday,
+		Today:          t.Energy.Today,
+		Period:         t.Energy.Period,
+		Power:          t.Energy.Power,
+		ApparentPower:  t.Energy.ApparentPower,
+		ReactivePower:  t.Energy.ReactivePower,
+		Factor:         t.Energy.Factor,
+		Frequency:      t.Energy.Frequency,
+		Voltage:        t.Energy.Voltage,
+		Current:        t.Energy.Current,
+	})
+	return err
 }
 func (s *Service) SaveEnergyLog(t types.EnergyTodayData) error {
-	s.clearLogs()
-	s.energyLogs = append(s.energyLogs, t)
+
 	return nil
 }
-func (s *Service) GetTopTeleMsg() *types.PushMsgData {
-	lens := len(s.teleSensorLogs)
-	if lens == 0 {
-		return nil
-	}
-	d := s.teleSensorLogs[lens-1]
-	t, err := time.Parse(d.Time, "2006-01-02T15:04:05")
+func (s *Service) GetTopTeleMsg(ctx context.Context) (*types.PushMsgData, error) {
+	d, err := s.ReportModel.FindLatest(ctx)
 	if err != nil {
-		s.Logger.Println("fail to parse tele time:", d.Time)
-		t = time.Now()
+		return nil, fmt.Errorf("GetTopTeleMsg error:%w", err)
 	}
 	res := &types.PushMsgData{
-		Title:       fmt.Sprintf("%s 电量统计", t.Format(time.DateOnly)),
-		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.Energy.Total, d.Energy.Today, d.Energy.Yesterday),
+		Title:       fmt.Sprintf("%s 电量统计", d.Time.Format(time.DateOnly)),
+		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.Total, d.Today, d.Yesterday),
 		Content:     "",
 		Channel:     "",
 		Token:       "",
 	}
-	if s.Config.Profile == "" || s.Config.Profile == types.ProfileDev {
-		res.To = "CaiJiaChen"
+	if s.Config.IsDev() {
+		res.To = s.Config.DevGroup()
 	} else {
-		res.To = "@all"
+		res.To = s.Config.ProdGroup()
 	}
-	return res
+	return res, nil
 }
-func (s *Service) GetTopEnergyMsg() *types.PushMsgData {
-	lens := len(s.energyLogs)
-	if lens == 0 {
-		return nil
-	}
-	d := s.energyLogs[lens-1]
-	res := &types.PushMsgData{
-		Title:       fmt.Sprintf("%s 测试电量统计", d.Time.Format(time.DateOnly)),
-		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.E.Total, d.E.Today, d.E.Yesterday),
-		Content:     "",
-		Channel:     "",
-		Token:       "",
-	}
 
-	if s.Config.Profile == "" || s.Config.Profile == types.ProfileDev {
-		res.To = "CaiJiaChen"
-	} else {
-		res.To = "@all"
-	}
-	return res
-}
-func (s *Service) clearLogs() {
-	if len(s.teleSensorLogs) >= s.logLensLimit {
-		s.teleSensorLogs = make([]types.SensorData, 0)
-	}
-	if len(s.energyLogs) >= s.logLensLimit {
-		s.energyLogs = make([]types.EnergyTodayData, 0)
-	}
-}
+// func (s *Service) GetTopEnergyMsg() *types.PushMsgData {
+// 	lens := len(s.energyLogs)
+// 	if lens == 0 {
+// 		return nil
+// 	}
+// 	d := s.energyLogs[lens-1]
+// 	res := &types.PushMsgData{
+// 		Title:       fmt.Sprintf("%s 测试电量统计", d.Time.Format(time.DateOnly)),
+// 		Description: fmt.Sprintf("总用电量%.2f度，今日用电%.2f度，昨日用电%.2f度", d.E.Total, d.E.Today, d.E.Yesterday),
+// 		Content:     "",
+// 		Channel:     "",
+// 		Token:       "",
+// 	}
+//
+// 	if s.Config.Profile == "" || s.Config.Profile == types.ProfileDev {
+// 		res.To = "CaiJiaChen"
+// 	} else {
+// 		res.To = "@all"
+// 	}
+// 	return res
+// }

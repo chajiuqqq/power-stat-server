@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"gotest.tools/v3/assert"
 	"log"
+	"mqtt-wx-forward/model/report"
 	"mqtt-wx-forward/types"
-	"strconv"
 	"testing"
+	"time"
 )
 
 var sv *Service
@@ -29,13 +31,43 @@ func Test_config(t *testing.T) {
 	assert.Equal(t, sv.Config.Cron, "0 52 12 * * *")
 	assert.Equal(t, sv.Config.Profile, "dev")
 }
+
 func TestService_SaveTeleLog(t *testing.T) {
-	for i := 1; i <= 100; i++ {
-		sv.SaveTeleLog(types.SensorData{Time: strconv.Itoa(i)})
-	}
-	assert.Equal(t, len(sv.teleSensorLogs), 100)
-	assert.Equal(t, sv.teleSensorLogs[len(sv.teleSensorLogs)-1].Time, "100")
-	sv.SaveTeleLog(types.SensorData{Time: "101"})
-	assert.Equal(t, len(sv.teleSensorLogs), 1)
-	assert.Equal(t, sv.teleSensorLogs[0].Time, "101")
+	ctx := context.Background()
+	err := sv.SaveTeleLog(ctx, types.SensorData{Time: "2023-10-08T09:21:03", Energy: types.SensorEnergy{
+		TotalStartTime: "2023-10-08T09:21:03",
+		Total:          100.001,
+	}})
+	assert.NilError(t, err)
+	res, err := sv.ReportModel.FindLatest(ctx)
+	assert.NilError(t, err)
+	assert.Equal(t, res.Total, float64(100.001))
+}
+
+func TestModel(t *testing.T) {
+	ctx := context.Background()
+	res, err := sv.ReportModel.Insert(ctx, &report.Report{
+		Time:           time.Now(),
+		TotalStartTime: time.Now(),
+		Total:          100.001,
+		Yesterday:      90.001,
+		Today:          10,
+		Period:         0,
+		Power:          0,
+		ApparentPower:  0,
+		ReactivePower:  0,
+		Factor:         0,
+		Frequency:      0,
+		Voltage:        0,
+		Current:        0,
+	})
+	assert.NilError(t, err)
+	id, err := res.LastInsertId()
+	assert.NilError(t, err)
+	r, err := sv.ReportModel.FindOne(ctx, id)
+	assert.NilError(t, err)
+	assert.Equal(t, r.Id, id)
+	assert.Equal(t, r.Total, float64(100.001))
+	assert.Equal(t, r.Yesterday, float64(90.001))
+	assert.Equal(t, r.Today, float64(10))
 }

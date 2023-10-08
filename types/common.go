@@ -16,9 +16,14 @@ type SensorEnergy struct {
 	Total          float64
 	Yesterday      float64
 	Today          float64
+	Period         int64
 	Power          int64
 	ApparentPower  int64
 	ReactivePower  int64
+	Factor         float64
+	Frequency      int64
+	Voltage        int64
+	Current        float64
 }
 type SensorData struct {
 	Time   string       `json:"Time"`
