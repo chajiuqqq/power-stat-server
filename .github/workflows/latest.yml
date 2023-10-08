@@ -1,4 +1,4 @@
-name: latest-image-push
+name: latest-image
 
 on:
   push:
