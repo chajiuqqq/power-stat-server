@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: latest-image-push
 
 on:
   push:
@@ -6,9 +6,8 @@ on:
       - main
 
 jobs:
-  build-and-push:
+  latest-version:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -24,4 +23,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: chajiuqqq/power-monitor-server:${{github.ref_name}}
+          tags: chajiuqqq/power-monitor-server:latest
