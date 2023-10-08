@@ -16,8 +16,11 @@
 
 ![power-monitor.jpg](doc%2Fpower-monitor.jpg)
 
+![monitor.jpeg](doc%2Fmonitor.jpeg)
 
-# Start
+![WechatIMG696.jpeg](doc%2FWechatIMG696.jpeg)
+
+# Quick Start
 
 docker部署：
 
