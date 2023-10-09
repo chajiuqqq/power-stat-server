@@ -12,6 +12,9 @@ type Config struct {
 	Profile  string
 	Cron     string
 	Wx       WxConfig
+	DBHost   string
+	DBPass   string
+	DB       string
 }
 
 type WxConfig struct {
@@ -32,6 +35,9 @@ func NewConfig() *Config {
 			ReceiverId:     os.Getenv("WX_RECEIVER_ID"),
 			EncodingAeskey: os.Getenv("WX_ENCODING_AES_KEY"),
 		},
+		DBHost: os.Getenv("DB_HOST"),
+		DBPass: os.Getenv("DB_PASS"),
+		DB:     os.Getenv("DB"),
 	}
 	if res.BrokerIp == "" {
 		log.Fatal("Please set BROKER_IP")
@@ -53,6 +59,15 @@ func NewConfig() *Config {
 	}
 	if res.Wx.EncodingAeskey == "" {
 		log.Fatal("Please set WX_ENCODING_AES_KEY")
+	}
+	if res.DBHost == "" {
+		log.Fatal("Please set DB_HOST")
+	}
+	if res.DBPass == "" {
+		log.Fatal("Please set DB_PASS")
+	}
+	if res.DB == "" {
+		log.Fatal("Please set DB")
 	}
 	return res
 }

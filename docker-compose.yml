@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  mqtt:
+    image: eclipse-mosquitto
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - /docker/data/mosquitto/conf/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - /docker/data/mosquitto/data:/mosquitto/data
+      - /docker/data/mosquitto/log:/mosquitto/log
+
+  power-monitor-parser:
+    image: chajiuqqq/power-monitor-parser
+    environment:
+      - BROKER_IP=mqtt
+      - PORT=1883
+      - PROFILE=dev
+      - CRON="0 0 1 * * *"
+      - WX_TOKEN=Y5QLsGCwu2Qw2B
+      - WX_RECEIVER_ID=ww35349f3d5dc5630e
+      - WX_ENCODING_AES_KEY=SSVpwrcWZ0mKqOukYmtJoWgdpfM8Uhsp35XxRdykNvW
+      - DB_HOST=mysql
+      - DB_PASS=1234
+      - DB=power_monitor
+
+  power-monitor-api:
+    image: chajiuqqq/power-monitor-api
+    environment:
+      - BROKER_IP=mqtt
+      - PORT=1883
+      - PROFILE=dev
+      - CRON="0 0 1 * * *"
+      - WX_TOKEN=Y5QLsGCwu2Qw2B
+      - WX_RECEIVER_ID=ww35349f3d5dc5630e
+      - WX_ENCODING_AES_KEY=SSVpwrcWZ0mKqOukYmtJoWgdpfM8Uhsp35XxRdykNvW
+      - DB_HOST=mysql
+      - DB_PASS=1234
+      - DB=power_monitor
+
+  mysql:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_DATABASE=power_monitor

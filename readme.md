@@ -7,6 +7,9 @@
 - 接收电量MQTT消息，定时推送消息（企业微信bot）
 - 部署参数可配置
 
+![WechatIMG700.jpeg](doc%2FWechatIMG700.jpeg)
+
+
 # System structure
 
 - [自行组装的统计模块](https://post.smzdm.com/p/aqxqv867/)

@@ -58,7 +58,7 @@ func New(conf *types.Config, logger *log.Logger, opt *ServiceOption) *Service {
 	httpc := &http.Client{}
 
 	// mysql dsn
-	conn := sqlx.NewMysql("root:@tcp(127.0.0.1:3306)/power_monitor_dev?charset=utf8mb4&parseTime=True&loc=Local")
+	conn := sqlx.NewMysql(fmt.Sprintf("root:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local", conf.DBHost, conf.DBPass, conf.DB))
 	return &Service{
 		Mqtt:        mqttc,
 		Http:        httpc,

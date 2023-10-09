@@ -6,7 +6,7 @@ on:
       - dev
 
 jobs:
-  build:
+  build-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
