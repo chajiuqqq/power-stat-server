@@ -8,6 +8,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"log"
 	"mqtt-wx-forward/model/report"
+	"mqtt-wx-forward/tools/wxbizmsgcrypt"
 	"mqtt-wx-forward/types"
 	"net/http"
 	"strings"
@@ -20,6 +21,7 @@ type Service struct {
 	Config      *types.Config
 	Logger      *log.Logger
 	ReportModel report.ReportModel
+	wxcpt       *wxbizmsgcrypt.WXBizMsgCrypt
 }
 type ServiceOption struct {
 	MqttBroker string
@@ -34,19 +36,22 @@ func New(conf *types.Config, logger *log.Logger, opt *ServiceOption) *Service {
 	if opt.ClientID == "" {
 		opt.ClientID = "mqtt-client-" + time.Now().Format("20060102150405")
 	}
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker(opt.MqttBroker)
-	opts.SetClientID(opt.ClientID)
+	var mqttc mqtt.Client
+	if opt.MqttBroker != "" {
+		opts := mqtt.NewClientOptions()
+		opts.AddBroker(opt.MqttBroker)
+		opts.SetClientID(opt.ClientID)
 
-	// 连接到MQTT代理
-	mqttc := mqtt.NewClient(opts)
-	if conf.Profile != types.ProfileTest {
-		if token := mqttc.Connect(); token.Wait() && token.Error() != nil {
-			logger.Fatal(token.Error())
+		// 连接到MQTT代理
+		mqttc = mqtt.NewClient(opts)
+		if conf.Profile != types.ProfileTest {
+			if token := mqttc.Connect(); token.Wait() && token.Error() != nil {
+				logger.Fatal(token.Error())
+			}
+			logger.Println("Connect to broker successfully:", opt.MqttBroker)
+		} else {
+			logger.Println("Testing env,skip connect to mqtt broker")
 		}
-		logger.Println("Connect to broker successfully:", opt.MqttBroker)
-	} else {
-		logger.Println("Testing env,skip connect to mqtt broker")
 	}
 
 	// http
@@ -60,6 +65,7 @@ func New(conf *types.Config, logger *log.Logger, opt *ServiceOption) *Service {
 		Config:      conf,
 		Logger:      logger,
 		ReportModel: report.NewReportModel(conn),
+		wxcpt:       wxbizmsgcrypt.NewWXBizMsgCrypt(conf.Wx.Token, conf.Wx.EncodingAeskey, conf.Wx.ReceiverId, wxbizmsgcrypt.XmlType),
 	}
 }
 
