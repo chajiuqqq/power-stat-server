@@ -22,7 +22,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          dockerfile: cmd/parser/Dockerfile
+          file: cmd/parser/Dockerfile
           push: true
           tags: chajiuqqq/power-monitor-parser:dev
 
@@ -30,6 +30,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          dockerfile: cmd/api/Dockerfile
+          file: cmd/api/Dockerfile
           push: true
           tags: chajiuqqq/power-monitor-api:dev
