@@ -63,9 +63,6 @@ func NewConfig() *Config {
 	if res.DBHost == "" {
 		log.Fatal("Please set DB_HOST")
 	}
-	if res.DBPass == "" {
-		log.Fatal("Please set DB_PASS")
-	}
 	if res.DB == "" {
 		log.Fatal("Please set DB")
 	}
