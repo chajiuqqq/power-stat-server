@@ -9,13 +9,13 @@ ENV WX_TOKEN=""
 ENV WX_RECEIVER_ID=""
 ENV WX_ENCODING_AES_KEY=""
 # 将源代码复制到容器中
-COPY . /app/
+COPY ../.. /app/
 
 # 设置工作目录
-WORKDIR /app/cmd
+WORKDIR /app/cmd/parser
 
 # 构建应用程序
-RUN go build -o app
+RUN go build -o parser
 
 # 设置容器启动命令
-CMD ["./app"]
+CMD ["./parser"]
