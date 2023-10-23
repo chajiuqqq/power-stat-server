@@ -23,9 +23,9 @@ func main() {
 	sv := service.New(conf, logger, opt)
 	h := handler.NewHandler(sv)
 	// Routes
-	pub := e.Group("/api")
-	pub.GET("/api/wx/echo", h.GetWxEcho)
-	pub.POST("/api/wx/echo", h.PostWxEcho)
+	pub := e.Group("/api/v1")
+	pub.GET("/stat", h.GetStat)
+	pub.POST("/energy", h.PostEnergyManagement)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
